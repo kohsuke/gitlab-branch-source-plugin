@@ -111,8 +111,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
 
     private final String repoOwner;
 
-    /** Which repository does this {@link GitLabSCMSource} represent? */
-    private final int project;
+    private final String repository;
 
     @NonNull
     private String includes = DescriptorImpl.defaultIncludes;
@@ -588,7 +587,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
                         if (criteria.isHead(probe, listener)) {
                             // FYI https://developer.github.com/v3/pulls/#response-1
                             String mergeable = mr.getMergeStatus();
-                            if (Boolean.FALSE.equals(mergeable)) {
+                            if (mergeable.equals("cannot_be_merged")) {
                                 if (merge)  {
                                     listener.getLogger().format("      Not mergeable, build likely to fail%n");
                                 } else {
@@ -601,12 +600,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
                             continue;
                         }
                     }
-                    String baseHash;
-                    if (merge) {
-                        baseHash = repo.getRef("heads/" + mr.getBase().getRef()).getObject().getSha();
-                    } else {
-                        baseHash = mr.getBase().getSha();
-                    }
+                    String baseHash = api.getBranch(mr.getTargetProjectId(),mr.getTargetBranch()).getCommit().getId();
                     MergeRequestSCMRevision rev = new MergeRequestSCMRevision(head, baseHash, mr.getSha());
                     observer.observe(head, rev);
                     if (!observer.isObserving()) {
