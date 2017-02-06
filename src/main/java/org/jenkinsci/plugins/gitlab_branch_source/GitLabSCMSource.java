@@ -24,8 +24,10 @@ import hudson.model.TaskListener;
 import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
+import hudson.plugins.git.browser.GitLab;
 import hudson.plugins.git.browser.GithubWeb;
 import hudson.plugins.git.extensions.GitSCMExtension;
+import hudson.plugins.git.extensions.impl.PreBuildMerge;
 import hudson.plugins.git.util.MergeRecord;
 import hudson.scm.SCM;
 import hudson.security.ACL;
@@ -573,7 +575,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
                             user.getEmail()
                             ));
                     pullRequestMetadataKeys.add(number);
-                    MergeRequestSCMHead head = new MergeRequestSCMHead(mr, branchName, merge);
+                    MergeRequestSCMHead head = new MergeRequestSCMHead(repo, mr, branchName, merge);
                     if (includes != null && !includes.contains(head)) {
                         // don't waste rate limit testing a head we are not interested in
                         continue;
@@ -746,15 +748,11 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
             MergeRequestSCMHead prhead = (MergeRequestSCMHead) head;
             int number = prhead.getNumber();
             GitlabMergeRequest pr = api.getMergeRequest(repo,number);
-            String baseHash;
-            if (prhead.isMerge()) {
-                baseHash = repo.getRef("heads/" + prhead.getTarget().getName()).getObject().getSha();
-            } else {
-                baseHash = pr.getBase().getSha();
-            }
+            String baseHash = api.getBranch(pr.getTargetProjectId(),pr.getTargetBranch()).getCommit().getId();
             return new MergeRequestSCMRevision((MergeRequestSCMHead) head, baseHash, pr.getSha());
         } else {
-            return new SCMRevisionImpl(head, repo.getRef("heads/" + head.getName()).getObject().getSha());
+            return new SCMRevisionImpl(head,
+                    api.getBranch(repo,head.getName()).getCommit().getId());
         }
     }
 
@@ -768,7 +766,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
                 setBrowser(scm, repoUrl);
             }
             return scm;
-        } else if (head instanceof MergeRequestSCMHead && ((MergeRequestSCMHead) head).getSourceRepo() != null) {
+        } else if (head instanceof MergeRequestSCMHead) {
             if (revision instanceof MergeRequestSCMRevision) {
                 MergeRequestSCMRevision prRev = (MergeRequestSCMRevision) revision;
                 // we rely on GitLab exposing the pull request revision on the target repository
@@ -813,7 +811,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     // TODO remove and replace with scm.setBrowser(repoUrl) directly once baseline Git plugin 3.0.2+
     private void setBrowser(GitSCM scm, String repoUrl) {
         try {
-            scm.setBrowser(new GithubWeb(repoUrl));
+            scm.setBrowser(new GitLab(repoUrl,null));
         } catch (NoSuchMethodError e) {
             Level level;
             long now = System.currentTimeMillis();

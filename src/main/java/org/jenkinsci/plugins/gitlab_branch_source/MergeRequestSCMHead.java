@@ -5,6 +5,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead;
 import org.gitlab.api.models.GitlabMergeRequest;
+import org.gitlab.api.models.GitlabProject;
 
 import java.util.logging.Logger;
 
@@ -22,19 +23,26 @@ public final class MergeRequestSCMHead extends SCMHead implements ChangeRequestS
     private final int number;
     private final BranchSCMHead target;
     private final int sourceProject;
+    private final String sourceOwner, sourceRepo;
     private final String sourceBranch;
     /**
      * Only populated if de-serializing instances.
      */
     private transient Metadata metadata;
 
-    MergeRequestSCMHead(GitlabMergeRequest pr, String name, boolean merge) {
+    /**
+     * @param repo
+     *      Repository that the MR is in.
+     */
+    MergeRequestSCMHead(GitlabProject repo, GitlabMergeRequest pr, String name, boolean merge) {
         super(name);
         // the merge flag is encoded into the name, so safe to store here
         this.merge = merge;
         this.number = pr.getIid();
         this.target = new BranchSCMHead(pr.getTargetBranch());
         this.sourceProject = pr.getSourceProjectId();
+        this.sourceOwner = repo.getNamespace().getPath();
+        this.sourceRepo = repo.getPath();
         this.sourceBranch = pr.getSha();
     }
 
@@ -84,6 +92,14 @@ public final class MergeRequestSCMHead extends SCMHead implements ChangeRequestS
     @Override
     public SCMHead getTarget() {
         return target;
+    }
+
+    public String getSourceOwner() {
+        return sourceOwner;
+    }
+
+    public String getSourceRepo() {
+        return sourceRepo;
     }
 
     public String getSourceBranch() {
