@@ -10,9 +10,11 @@ import jenkins.scm.api.SCMRevision;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.GitlabCommit;
 import org.gitlab.api.models.GitlabProject;
+import org.gitlab.api.models.GitlabRepositoryTree;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 
 class GitLabSCMProbe extends SCMProbe {
     private static final long serialVersionUID = 1L;
@@ -59,9 +61,7 @@ class GitLabSCMProbe extends SCMProbe {
             }
         } else if (revision == null) {
             try {
-                GHRef ref = repo.getRef(this.ref);
-                GitlabCommit commit = repo.getCommit(ref.getObject().getSha());
-                return commit.getCommittedDate().getTime();
+                return api.getBranch(repo, this.ref).getCommit().getCommittedDate().getTime();
             } catch (IOException e) {
                 // ignore
             }
@@ -76,15 +76,17 @@ class GitLabSCMProbe extends SCMProbe {
             throw new IOException("No connection available");
         }
         try {
+
             int index = path.lastIndexOf('/') + 1;
-            List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
-            for (GHContent content : directoryContent) {
+            List<GitlabRepositoryTree> directoryContent = api.getRepositoryTree(repo,path.substring(0, index), ref, false);
+            for (GitlabRepositoryTree content : directoryContent) {
                 if (content.getPath().equals(path)) {
-                    if (content.isFile()) {
+                    String t = content.getType();
+                    if (t.equals("blob")) {
                         return SCMProbeStat.fromType(SCMFile.Type.REGULAR_FILE);
-                    } else if (content.isDirectory()) {
+                    } else if (t.equals("tree")) {
                         return SCMProbeStat.fromType(SCMFile.Type.DIRECTORY);
-                    } else if ("symlink".equals(content.getType())) {
+                    } else if (content.getMode().equals("120000")) {
                         return SCMProbeStat.fromType(SCMFile.Type.LINK);
                     } else {
                         return SCMProbeStat.fromType(SCMFile.Type.OTHER);
