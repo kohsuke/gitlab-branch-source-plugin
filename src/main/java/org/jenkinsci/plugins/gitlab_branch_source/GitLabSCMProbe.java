@@ -119,7 +119,7 @@ class GitLabSCMProbe extends SCMProbe {
         } else {
             ref = this.ref;
         }
-        return new GitLabSCMFile(repo, ref);
+        return new GitLabSCMFile(api, repo, ref);
     }
 
 }

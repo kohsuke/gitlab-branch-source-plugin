@@ -4,8 +4,13 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFile.Type;
+import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.GitlabProject;
+import org.gitlab.api.models.GitlabRepositoryFile;
+import org.gitlab.api.models.GitlabRepositoryTree;
+import org.w3c.dom.TypeInfo;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,15 +20,17 @@ import java.util.List;
 class GitLabSCMFile extends SCMFile {
 
     private TypeInfo info;
+    private final GitlabAPI api;
     private final GitlabProject repo;
     private final String ref;
     private transient Object metadata;
     private transient boolean resolved;
 
-    GitLabSCMFile(GitlabProject repo, String ref) {
+    GitLabSCMFile(GitlabAPI api, GitlabProject repo, String ref) {
         super();
         type(Type.DIRECTORY);
         info = TypeInfo.DIRECTORY_ASSUMED; // we have not resolved the metadata yet
+        this.api = api;
         this.repo = repo;
         this.ref = ref;
     }
@@ -31,15 +38,17 @@ class GitLabSCMFile extends SCMFile {
     private GitLabSCMFile(@NonNull GitLabSCMFile parent, String name, TypeInfo info) {
         super(parent, name);
         this.info = info;
+        this.api = parent.api;
         this.repo = parent.repo;
         this.ref = parent.ref;
     }
 
-    private GitLabSCMFile(@NonNull GitLabSCMFile parent, String name, GHContent metadata) {
+    private GitLabSCMFile(@NonNull GitLabSCMFile parent, String name, GitlabRepositoryTree metadata) {
         super(parent, name);
+        this.api = parent.api;
         this.repo = parent.repo;
         this.ref = parent.ref;
-        if (metadata.isDirectory()) {
+        if (metadata.getType().equals("tree")) {
             info = TypeInfo.DIRECTORY_CONFIRMED;
             // we have not listed the children yet, but we know it is a directory
         } else {
@@ -54,27 +63,24 @@ class GitLabSCMFile extends SCMFile {
             try {
                 switch (info) {
                     case DIRECTORY_ASSUMED:
-                        metadata = repo.getDirectoryContent(getPath(), ref);
+                    case DIRECTORY_CONFIRMED:
+                        metadata = api.getRepositoryTree(repo, getPath(), ref, false);
                         info = TypeInfo.DIRECTORY_CONFIRMED;
                         resolved = true;
                         break;
-                    case DIRECTORY_CONFIRMED:
-                        metadata = repo.getDirectoryContent(getPath(), ref);
-                        resolved = true;
-                        break;
                     case NON_DIRECTORY_CONFIRMED:
-                        metadata = repo.getFileContent(getPath(), ref);
+                        metadata = api.getRepositoryFile(repo, getPath(), ref);
                         resolved = true;
                         break;
                     case UNRESOLVED:
                         try {
-                            metadata = repo.getFileContent(getPath(), ref);
+                            metadata = api.getRepositoryFile(repo, getPath(), ref);
                             info = TypeInfo.NON_DIRECTORY_CONFIRMED;
                             resolved = true;
                         } catch (IOException e) {
                             if (e.getCause() instanceof IOException
                                     && e.getCause().getCause() instanceof JsonMappingException) {
-                                metadata = repo.getDirectoryContent(getPath(), ref);
+                                metadata = api.getRepositoryTree(repo, getPath(), ref, false);
                                 info = TypeInfo.DIRECTORY_CONFIRMED;
                                 resolved = true;
                             } else {
@@ -100,9 +106,9 @@ class GitLabSCMFile extends SCMFile {
     @NonNull
     @Override
     public Iterable<SCMFile> children() throws IOException {
-        List<GHContent> content = repo.getDirectoryContent(getPath(), ref);
+        List<GitlabRepositoryTree> content = api.getRepositoryTree(repo, getPath(), ref, false);
         List<SCMFile> result = new ArrayList<>(content.size());
-        for (GHContent c : content) {
+        for (GitlabRepositoryTree c : content) {
             result.add(new GitLabSCMFile(this, c.getName(), c));
         }
         return result;
@@ -121,8 +127,9 @@ class GitLabSCMFile extends SCMFile {
         if (metadata instanceof List) {
             return Type.DIRECTORY;
         }
-        if (metadata instanceof GHContent) {
-            GHContent content = (GHContent) metadata;
+        if (metadata instanceof GitlabRepositoryFile) {
+            GitlabRepositoryFile content = (GitlabRepositoryFile) metadata;
+            /* TODO:
             if ("symlink".equals(content.getType())) {
                 return Type.LINK;
             }
@@ -130,6 +137,8 @@ class GitLabSCMFile extends SCMFile {
                 return Type.REGULAR_FILE;
             }
             return Type.OTHER;
+            */
+            return Type.REGULAR_FILE;
         }
         return Type.NONEXISTENT;
     }
@@ -141,8 +150,8 @@ class GitLabSCMFile extends SCMFile {
         if (metadata instanceof List) {
             throw new IOException("Directory");
         }
-        if (metadata instanceof GHContent) {
-            return ((GHContent)metadata).read();
+        if (metadata instanceof GitlabRepositoryFile) {
+            return new ByteArrayInputStream(api.getRawBlobContent(repo,((GitlabRepositoryFile)metadata).getBlobId()));
         }
         throw new FileNotFoundException(getPath());
     }
