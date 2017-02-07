@@ -31,7 +31,7 @@ class GitLabSCMProbe extends SCMProbe {
         this.name = head.getName();
         if (head instanceof MergeRequestSCMHead) {
             MergeRequestSCMHead pr = (MergeRequestSCMHead) head;
-            this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+            this.ref = "refs/merge-requests/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
         } else {
             this.ref = "refs/heads/" + head.getName();
         }
