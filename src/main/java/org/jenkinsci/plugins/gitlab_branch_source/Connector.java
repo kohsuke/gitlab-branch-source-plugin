@@ -14,6 +14,7 @@ import com.dabsquared.gitlabjenkins.connection.GitLabConnection;
 import com.dabsquared.gitlabjenkins.connection.GitLabConnectionConfig;
 import hudson.AbortException;
 import hudson.Util;
+import hudson.model.Item;
 import hudson.model.Queue;
 import hudson.model.Queue.Task;
 import hudson.model.queue.Tasks;
@@ -29,9 +30,11 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.net.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
 import static java.util.logging.Level.*;
 
 /**
@@ -52,16 +55,8 @@ public class Connector {
             return null;
         } else {
             StandardCredentials c = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentials(
-                            StandardCredentials.class,
-                            context,
-                            context instanceof Task
-                                    ? Tasks.getDefaultAuthenticationOf((Task) context)
-                                    : ACL.SYSTEM,
-                            gitlabDomainRequirements(apiUri)
-                    ),
-                    CredentialsMatchers.allOf(CredentialsMatchers.withId(scanCredentialsId), gitlabScanCredentialsMatcher())
-            );
+                            lookupCredentials(StandardCredentials.class, (Item) null, ACL.SYSTEM, gitlabDomainRequirements(apiUri)),
+                            CredentialsMatchers.withId(scanCredentialsId));
             if (c!=null)    return c;
 
             String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
