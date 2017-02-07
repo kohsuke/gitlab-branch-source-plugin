@@ -404,7 +404,7 @@ public class GitLabSCMNavigator extends SCMNavigator {
         public ListBoxModel doFillEndpointItems() {
             ListBoxModel result = new ListBoxModel();
             for (GitLabConnection con : gitLabConfig.getConnections()) {
-                result.add(con.getName(),String.format("%s (%s)", con.getName(), con.getUrl()));
+                result.add(String.format("%s (%s)", con.getName(), con.getUrl()),con.getName());
             }
             return result;
         }
