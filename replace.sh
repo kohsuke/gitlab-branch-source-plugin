@@ -6,5 +6,5 @@ for f in PullRequest/MergeRequest GHBranch/GitlabBranch GitHubSCM/GitLabSCM GHRe
          getWebUrl\(\).toString\(\)/getWebUrl\(\) \
          GitHub/GitLab;
 do
-  perl -pi -w -e "s/$f/g;" src/**/*.java src/**/*.properties
+  perl -pi -w -e "s/$f/g;" src/**/*.java src/**/*.properties src/**/*.jelly
 done
