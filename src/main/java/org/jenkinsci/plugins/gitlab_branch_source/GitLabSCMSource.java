@@ -794,7 +794,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     // TODO remove and replace with scm.setBrowser(repoUrl) directly once baseline Git plugin 3.0.2+
     private void setBrowser(GitSCM scm, String repoUrl) {
         try {
-            scm.setBrowser(new GitLab(repoUrl,null));
+            scm.setBrowser(new GitLab(repoUrl,"8.7"/*the same as GitLab.DEFAULT_VERSION*/));
         } catch (NoSuchMethodError e) {
             Level level;
             long now = System.currentTimeMillis();
