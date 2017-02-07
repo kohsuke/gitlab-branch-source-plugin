@@ -101,7 +101,7 @@ public class Connector {
                 return FormValidation.error("Exception validating credentials",e);
             }
         } else {
-            return FormValidation.warning("Credentials are recommended");
+            return FormValidation.error("Credentials are needed to connect to GitLab");
         }
     }
 
