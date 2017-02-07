@@ -2,22 +2,19 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
     <j:if test="${descriptor.apiUriSelectable}">
-        <f:entry title="${%API endpoint}" field="apiUri">
+        <f:entry title="${%API endpoint}" field="endpoint">
             <f:select/>
         </f:entry>
     </j:if>
     <f:entry title="${%Owner}" field="repoOwner">
         <f:textbox/>
     </f:entry>
-    <f:entry title="${%Scan credentials}" field="scanCredentialsId">
-        <c:select/>
-    </f:entry>
     <f:entry title="${%Repository name pattern}" field="pattern">
         <f:textbox default=".*"/>
     </f:entry>
     <f:advanced>
         <j:if test="${!descriptor.apiUriSelectable}">
-            <f:entry title="${%API endpoint}" field="apiUri">
+            <f:entry title="${%API endpoint}" field="endpoint">
                 <f:select/>
             </f:entry>
         </j:if>

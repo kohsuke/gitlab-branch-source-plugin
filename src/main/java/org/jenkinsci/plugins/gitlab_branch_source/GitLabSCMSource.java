@@ -2,14 +2,13 @@ package org.jenkinsci.plugins.gitlab_branch_source;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.dabsquared.gitlabjenkins.connection.GitLabConnection;
 import com.dabsquared.gitlabjenkins.connection.GitLabConnectionConfig;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
@@ -49,7 +48,6 @@ import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
-import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
@@ -89,13 +87,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static hudson.model.Items.XSTREAM2;
+import static hudson.model.Items.*;
 
 public class GitLabSCMSource extends AbstractGitSCMSource {
-
-    public static final String VALID_GITHUB_REPO_NAME = "^[0-9A-Za-z._-]+$";
-    public static final String VALID_GITHUB_USER_NAME = "^[0-9A-Za-z]([0-9A-Za-z._-]+[0-9A-Za-z])$";
-    public static final String VALID_GIT_SHA1 = "^[a-fA-F0-9]{40}$";
     private static final Logger LOGGER = Logger.getLogger(GitLabSCMSource.class.getName());
     /**
      * Log spam protection, only log at most once every 5 minutes.
@@ -103,41 +97,38 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     // TODO remove once baseline Git plugin 3.0.2+
     private static final AtomicLong jenkins41244Warning = new AtomicLong();
 
-    private final String apiUri;
+    private final String endpoint;
 
     /** Credentials for actual clone; may be SSH private key. */
     private final String checkoutCredentialsId;
-
-    /** Credentials for GitLab API; currently only supports username/password (personal access token). */
-    private final String scanCredentialsId;
 
     private final String repoOwner;
 
     private final String repository;
 
-    @NonNull
+    @Nonnull
     private String includes = DescriptorImpl.defaultIncludes;
 
-    @NonNull
+    @Nonnull
     private String excludes = DescriptorImpl.defaultExcludes;
 
     /** Whether to build regular origin branches. */
-    @NonNull
+    @Nonnull
     private Boolean buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
     /** Whether to build origin branches which happen to also have a PR filed from them (but here we are naming and building as a branch). */
-    @NonNull
+    @Nonnull
     private Boolean buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
     /** Whether to build PRs filed from the origin, where the build is of the merge with the base branch. */
-    @NonNull
+    @Nonnull
     private Boolean buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
     /** Whether to build PRs filed from the origin, where the build is of the branch head. */
-    @NonNull
+    @Nonnull
     private Boolean buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
     /** Whether to build PRs filed from a fork, where the build is of the merge with the base branch. */
-    @NonNull
+    @Nonnull
     private Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
-    @NonNull
+    @Nonnull
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
     /**
@@ -153,28 +144,27 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     /**
      * The cache of {@link ObjectMetadataAction} instances for each open PR.
      */
-    @NonNull
+    @Nonnull
     private transient /*effectively final*/ Map<Integer,ObjectMetadataAction> pullRequestMetadataCache;
     /**
      * The cache of {@link ObjectMetadataAction} instances for each open PR.
      */
-    @NonNull
+    @Nonnull
     private transient /*effectively final*/ Map<Integer,ContributorMetadataAction> pullRequestContributorCache;
 
     @DataBoundConstructor
-    public GitLabSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
+    public GitLabSCMSource(String id, String endpoint, String checkoutCredentialsId, String repoOwner, String repository) {
         super(id);
-        this.apiUri = Util.fixEmpty(apiUri);
+        this.endpoint = endpoint;
         this.repoOwner = repoOwner;
         this.repository = repository;
-        this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
         pullRequestMetadataCache = new ConcurrentHashMap<>();
         pullRequestContributorCache = new ConcurrentHashMap<>();
     }
 
     /** Use defaults for old settings. */
-    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
+    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_Nonnull_VALUE", justification="Only non-null after we set them here!")
     private Object readResolve() {
         if (buildOriginBranch == null) {
             buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
@@ -204,8 +194,8 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     }
 
     @CheckForNull
-    public String getApiUri() {
-        return apiUri;
+    public String getEndpoint() {
+        return endpoint;
     }
 
     /**
@@ -224,15 +214,10 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
         if (DescriptorImpl.ANONYMOUS.equals(checkoutCredentialsId)) {
             return null;
         } else if (DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
-            return scanCredentialsId;
+            return Connector.getEndpoint(endpoint).getApiTokenId();
         } else {
             return checkoutCredentialsId;
         }
-    }
-
-    @CheckForNull
-    public String getScanCredentialsId() {
-        return scanCredentialsId;
     }
 
     @CheckForNull
@@ -287,7 +272,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
      * @param credentialsId Identifier of credentials
      * @return The credentials or null if it does not exists
      */
-    private <T extends StandardCredentials> T getCredentials(@NonNull Class<T> type, @NonNull String credentialsId) {
+    private <T extends StandardCredentials> T getCredentials(@Nonnull Class<T> type, @Nonnull String credentialsId) {
         return CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(
                 type, getOwner(), ACL.SYSTEM,
                 Collections.<DomainRequirement> emptyList()), CredentialsMatchers.allOf(
@@ -296,23 +281,23 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     }
 
     @Override
-    @NonNull
+    @Nonnull
     public String getIncludes() {
         return includes;
     }
 
     @DataBoundSetter
-    public void setIncludes(@NonNull String includes) {
+    public void setIncludes(@Nonnull String includes) {
         this.includes = includes;
     }
 
     @Override
-    @NonNull
+    @Nonnull
     public String getExcludes() {
         return excludes;
     }
 
-    @DataBoundSetter public void setExcludes(@NonNull String excludes) {
+    @DataBoundSetter public void setExcludes(@Nonnull String excludes) {
         this.excludes = excludes;
     }
 
@@ -372,14 +357,14 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
 
     @Override
     public String getRemote() {
-        return getUriResolver().getRepositoryUri(apiUri, repoOwner, repository);
+        return getUriResolver().getRepositoryUri(Connector.getEndpoint(endpoint).getUrl(), repoOwner, repository);
     }
 
     @Override
     protected final void retrieve(@CheckForNull SCMSourceCriteria criteria,
-                                  @NonNull SCMHeadObserver observer,
+                                  @Nonnull SCMHeadObserver observer,
                                   @CheckForNull SCMHeadEvent<?> event,
-                                  @NonNull final TaskListener listener) throws IOException, InterruptedException {
+                                  @Nonnull final TaskListener listener) throws IOException, InterruptedException {
         // Github client and validation
         GitlabAPI gitlab = connect(listener);
 
@@ -708,9 +693,9 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
         return super.isExcluded(branchName); // override so that we can call this method from this SCMHeadEvent
     }
 
-    @NonNull
+    @Nonnull
     @Override
-    protected SCMProbe createProbe(@NonNull SCMHead head, @CheckForNull final SCMRevision revision) throws IOException {
+    protected SCMProbe createProbe(@Nonnull SCMHead head, @CheckForNull final SCMRevision revision) throws IOException {
         GitlabAPI api = connect(TaskListener.NULL);
 
         String fullName = repoOwner + "/" + repository;
@@ -719,16 +704,14 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
         try {
             repo = api.getProject(fullName);
         } catch (FileNotFoundException e) {
-            throw new AbortException(String.format("No such project '%s' exists when using %s on %s",
-                    fullName, scanCredentialsId, apiUri == null ? Connector.GITLAB_URL : apiUri));
+            throw new AbortException(String.format("No such project '%s' exists in %s", fullName, api.getUrl("")));
         }
         return new GitLabSCMProbe(api, repo, head, revision);
     }
 
     private GitlabAPI connect(TaskListener listener) throws IOException {
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
-        GitlabAPI api = Connector.connect(apiUri, credentials);
-        listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? Connector.GITLAB_URL : apiUri, CredentialsNameProvider.name(credentials));
+        GitlabAPI api = Connector.connect(getOwner(),endpoint);
+        listener.getLogger().format("Connecting to %s%n", endpoint);
         return api;
     }
 
@@ -846,12 +829,6 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
             // hack!
             return repositoryUrl.replace(repoOwner+"/"+repository, owner+"/"+repo);
         }
-        if (StringUtils.isBlank(apiUri)) {
-            return "https://github.com/"+ owner+"/"+repo;
-        }
-        if (StringUtils.endsWith(StringUtils.removeEnd(apiUri, "/"), "/api/v3")) {
-            return StringUtils.removeEnd(StringUtils.removeEnd(apiUri, "/"), "api/v3") + owner + "/" + repo;
-        }
         return null;
     }
 
@@ -926,40 +903,8 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
              */
 
             if (collaboratorNames == null) {
-                listener.getLogger().format("Connecting to %s to obtain list of collaborators for %s/%s%n",
-                        apiUri == null ? Connector.GITLAB_URL : apiUri, repoOwner, repository);
-                StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
-                // Github client and validation
-                GitlabAPI gitlab = Connector.connect(apiUri, credentials);
-                if (collaboratorNames == null) {
-                    // Input data validation
-                    String credentialsName =
-                            credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
-
-                    listener.getLogger()
-                            .format("Connecting to %s using %s%n", apiUri == null ? Connector.GITLAB_URL : apiUri,
-                                    credentialsName);
-
-                    // Input data validation
-                    if (repository == null || repository.isEmpty()) {
-                        collaboratorNames = Collections.singleton(repoOwner);
-                    } else {
-                        String fullName = repoOwner + "/" + repository;
-                        final GitlabProject repo;
-                        try {
-                            repo = gitlab.getProject(fullName);
-                            repositoryUrl = repo.getWebUrl();
-                            // TODO
-                            // collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
-                        } catch (FileNotFoundException e) {
-                            listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
-                                            + "assuming no trusted collaborators%n",
-                                    credentialsName,
-                                    apiUri == null ? Connector.GITLAB_URL : apiUri);
-                            collaboratorNames = Collections.singleton(repoOwner);
-                        }
-                    }
-                }
+                // TODO
+                collaboratorNames = Collections.singleton(repoOwner);
             }
             if (!collaboratorNames.contains(head.getSourceOwner())) {
                 MergeRequestSCMRevision rev = (MergeRequestSCMRevision) revision;
@@ -974,7 +919,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     /**
      * {@inheritDoc}
      */
-    protected boolean isCategoryEnabled(@NonNull SCMHeadCategory category) {
+    protected boolean isCategoryEnabled(@Nonnull SCMHeadCategory category) {
         if (category instanceof ChangeRequestSCMHeadCategory) {
             // only display change requests if this source is enabled for change requests
             return super.isCategoryEnabled(category) && (
@@ -991,11 +936,11 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     /**
      * {@inheritDoc}
      */
-    @NonNull
+    @Nonnull
     @Override
-    protected List<Action> retrieveActions(@NonNull SCMHead head,
+    protected List<Action> retrieveActions(@Nonnull SCMHead head,
                                            @CheckForNull SCMHeadEvent event,
-                                           @NonNull TaskListener listener) throws IOException, InterruptedException {
+                                           @Nonnull TaskListener listener) throws IOException, InterruptedException {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
         SCMSourceOwner owner = getOwner();
@@ -1042,26 +987,18 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     /**
      * {@inheritDoc}
      */
-    @NonNull
+    @Nonnull
     @Override
     protected List<Action> retrieveActions(@CheckForNull SCMSourceEvent event,
-                                           @NonNull TaskListener listener) throws IOException {
+                                           @Nonnull TaskListener listener) throws IOException {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
         result.add(new GitLabProjectMetadataAction());
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
-        GitlabAPI api = Connector.connect(apiUri, credentials);
-        listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? Connector.GITLAB_URL : apiUri,
-                scanCredentialsId);
+        GitlabAPI api = connect(listener);
 
-        GitlabProject repo;
-        try {
-            repo = api.getProject(getRepoOwner() + '/' + repository);
+        GitlabProject repo = api.getProject(getRepoOwner() + '/' + repository);
         repositoryUrl = repo.getWebUrl();
-        } catch (FileNotFoundException e) {
-            throw new AbortException(String.format("Invalid scan credentials when using %s to connect to %s/%s on %s",
-                    scanCredentialsId, repoOwner, repository, apiUri == null ? Connector.GITLAB_URL : apiUri));
-        }
+
         result.add(new ObjectMetadataAction(null, repo.getDescription(), Util.fixEmpty(repo.getWebUrl())));
         result.add(new GitLabLink("icon-github-repo", repo.getWebUrl()));
         if (StringUtils.isNotBlank(repo.getDefaultBranch())) {
@@ -1116,13 +1053,6 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
                 return FormValidation.warning(Messages.GitLabSCMSource_did_you_mean_to_use_to_match_all_branches());
             }
             return FormValidation.ok();
-        }
-
-        @Restricted(NoExternalUse.class)
-        public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
-                                                       @QueryParameter String apiUri,
-                                                       @QueryParameter String scanCredentialsId) {
-            return Connector.checkScanCredentials(context, apiUri, scanCredentialsId);
         }
 
         @Restricted(NoExternalUse.class)
@@ -1187,11 +1117,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
             return Connector.listCheckoutCredentials(context, apiUri);
         }
 
-        public ListBoxModel doFillScanCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
-            return Connector.listScanCredentials(context, apiUri);
-        }
-
-        public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri,
+        public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String endpoint,
                 @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) {
             Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
@@ -1200,8 +1126,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
                 return nameAndValueModel(result);
             }
             try {
-                StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
-                GitlabAPI api = Connector.connect(apiUri, credentials);
+                GitlabAPI api = Connector.connect(context, endpoint);
 
                 GitlabGroup org = null;
                 try {
@@ -1237,7 +1162,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
             return model;
         }
 
-        @NonNull
+        @Nonnull
         @Override
         protected SCMHeadCategory[] createCategories() {
             return new SCMHeadCategory[]{

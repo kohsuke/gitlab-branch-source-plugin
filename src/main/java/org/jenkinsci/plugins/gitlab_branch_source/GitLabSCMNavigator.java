@@ -1,7 +1,5 @@
 package org.jenkinsci.plugins.gitlab_branch_source;
 
-import com.cloudbees.plugins.credentials.CredentialsNameProvider;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.dabsquared.gitlabjenkins.connection.GitLabConnection;
 import com.dabsquared.gitlabjenkins.connection.GitLabConnectionConfig;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -23,7 +21,6 @@ import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
-import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.lang.StringUtils;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.GitlabGroup;
@@ -45,11 +42,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
-import static org.jenkinsci.plugins.gitlab_branch_source.Connector.GITLAB_URL;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -57,10 +51,13 @@ import static org.jenkinsci.plugins.gitlab_branch_source.Connector.GITLAB_URL;
 public class GitLabSCMNavigator extends SCMNavigator {
 
     private final String repoOwner;
-    private final String scanCredentialsId;
-    private final String checkoutCredentialsId;
-    private final String apiUri;
+    /**
+     * Maps to {@link GitLabConnection#getName()}
+     */
+    private final String endpoint;
     private String pattern = ".*";
+
+    private final String checkoutCredentialsId;
 
     @CheckForNull
     private String includes;
@@ -86,11 +83,10 @@ public class GitLabSCMNavigator extends SCMNavigator {
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
     @DataBoundConstructor
-    public GitLabSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
+    public GitLabSCMNavigator(String endpoint, String repoOwner, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
-        this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
+        this.endpoint = Util.fixEmpty(endpoint);
         this.checkoutCredentialsId = checkoutCredentialsId;
-        this.apiUri = Util.fixEmpty(apiUri);
     }
 
     /** Use defaults for old settings. */
@@ -196,11 +192,6 @@ public class GitLabSCMNavigator extends SCMNavigator {
     }
 
     @CheckForNull
-    public String getScanCredentialsId() {
-        return scanCredentialsId;
-    }
-
-    @CheckForNull
     public String getCheckoutCredentialsId() {
         return checkoutCredentialsId;
     }
@@ -210,8 +201,8 @@ public class GitLabSCMNavigator extends SCMNavigator {
     }
 
     @CheckForNull
-    public String getApiUri() {
-        return apiUri;
+    public String getEndpoint() {
+        return endpoint;
     }
 
     @DataBoundSetter
@@ -223,7 +214,7 @@ public class GitLabSCMNavigator extends SCMNavigator {
     @NonNull
     @Override
     protected String id() {
-        return StringUtils.defaultIfBlank(apiUri, GITLAB_URL) + "::" + repoOwner;
+        return endpoint + "::" + repoOwner;
     }
 
     @Override
@@ -263,15 +254,11 @@ public class GitLabSCMNavigator extends SCMNavigator {
     }
 
     private GitlabAPI connect(SCMSourceObserver observer) throws IOException {
-        // Input data validation
-        if (repoOwner.isEmpty()) {
-            throw new AbortException("Must specify user or organization");
-        }
+        return connect(observer.getContext());
+    }
 
-        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
-
-        // Github client and validation
-        return Connector.connect(apiUri, credentials);
+    private GitlabAPI connect(SCMSourceOwner observer) throws IOException {
+        return Connector.connect(observer,endpoint);
     }
 
     private void add(TaskListener listener, SCMSourceObserver observer, GitlabAPI gitlab, GitlabProject repo) throws InterruptedException {
@@ -284,9 +271,7 @@ public class GitLabSCMNavigator extends SCMNavigator {
         checkInterrupt();
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
 
-        GitLabSCMSource glSCMSource = new GitLabSCMSource(getId()+ "::" + name,
-                apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name
-        );
+        GitLabSCMSource glSCMSource = new GitLabSCMSource(getId()+ "::" + name, endpoint, checkoutCredentialsId, repoOwner, name);
         glSCMSource.setExcludes(getExcludes());
         glSCMSource.setIncludes(getIncludes());
         glSCMSource.setBuildOriginBranch(getBuildOriginBranch());
@@ -311,8 +296,7 @@ public class GitLabSCMNavigator extends SCMNavigator {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
         List<Action> result = new ArrayList<>();
-        StandardCredentials credentials = Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
-        GitlabAPI api = Connector.connect(apiUri, credentials);
+        GitlabAPI api = connect(owner);
 
         GitlabGroup g = api.getGroup(getRepoOwner());
         String objectUrl = g.getWebUrl();
@@ -401,7 +385,7 @@ public class GitLabSCMNavigator extends SCMNavigator {
 
         @Override
         public SCMNavigator newInstance(String name) {
-            return new GitLabSCMNavigator("", name, "", GitLabSCMSource.DescriptorImpl.SAME);
+            return new GitLabSCMNavigator("", name, GitLabSCMSource.DescriptorImpl.SAME);
         }
 
         @NonNull
@@ -413,32 +397,20 @@ public class GitLabSCMNavigator extends SCMNavigator {
             };
         }
 
-        @Restricted(NoExternalUse.class)
-        public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
-                                                       @QueryParameter String apiUri,
-                                                       @QueryParameter String scanCredentialsId) {
-            return Connector.checkScanCredentials(context, apiUri, scanCredentialsId);
-        }
-
-        public ListBoxModel doFillScanCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
-            return Connector.listScanCredentials(context, apiUri);
-        }
-
         public ListBoxModel doFillCheckoutCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
-            return Connector.listCheckoutCredentials(context, apiUri);
-        }
+             return Connector.listCheckoutCredentials(context, apiUri);
+         }
 
-        public ListBoxModel doFillApiUriItems() {
+        public ListBoxModel doFillEndpointItems() {
             ListBoxModel result = new ListBoxModel();
-            result.add("GitLab", "");
-            for (GitLabConnection e : gitLabConfig.getConnections()) {
-                result.add(e.getName());
+            for (GitLabConnection con : gitLabConfig.getConnections()) {
+                result.add(con.getName(),String.format("%s (%s)", con.getName(), con.getUrl()));
             }
             return result;
         }
 
         public boolean isApiUriSelectable() {
-            return !gitLabConfig.getConnections().isEmpty();
+            return gitLabConfig.getConnections().size()>1;
         }
 
         // TODO repeating configuration blocks like this is clumsy; better to factor shared config into a Describable and use f:property
