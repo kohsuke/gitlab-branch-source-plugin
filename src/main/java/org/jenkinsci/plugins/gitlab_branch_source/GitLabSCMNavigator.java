@@ -211,7 +211,7 @@ public class GitLabSCMNavigator extends SCMNavigator {
         this.pattern = pattern;
     }
 
-    @NonNull
+    @Nonnull
     @Override
     protected String id() {
         return endpoint + "::" + repoOwner;
