@@ -51,16 +51,16 @@ public class Connector {
         if (Util.fixEmpty(scanCredentialsId) == null) {
             return null;
         } else {
-            StandardUsernameCredentials c = CredentialsMatchers.firstOrNull(
+            StandardCredentials c = CredentialsMatchers.firstOrNull(
                     CredentialsProvider.lookupCredentials(
-                            StandardUsernameCredentials.class,
+                            StandardCredentials.class,
                             context,
                             context instanceof Task
                                     ? Tasks.getDefaultAuthenticationOf((Task) context)
                                     : ACL.SYSTEM,
                             gitlabDomainRequirements(apiUri)
                     ),
-                    CredentialsMatchers.allOf(CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher())
+                    CredentialsMatchers.allOf(CredentialsMatchers.withId(scanCredentialsId), gitlabScanCredentialsMatcher())
             );
             if (c!=null)    return c;
 
@@ -137,8 +137,7 @@ public class Connector {
         }
     }
 
-    private static CredentialsMatcher githubScanCredentialsMatcher() {
-        // TODO OAuth credentials
+    private static CredentialsMatcher gitlabScanCredentialsMatcher() {
         return CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class));
     }
 
