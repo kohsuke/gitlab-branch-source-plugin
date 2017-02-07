@@ -1,8 +1,8 @@
 package org.jenkinsci.plugins.gitlab_branch_source;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.InvisibleAction;
 
+import javax.annotation.Nonnull;
 import java.io.Serializable;
 
 /**
@@ -10,30 +10,30 @@ import java.io.Serializable;
  */
 public class GitLabDefaultBranch extends InvisibleAction implements Serializable {
     private static final long serialVersionUID = 1L;
-    @NonNull
+    @Nonnull
     private final String repoOwner;
-    @NonNull
+    @Nonnull
     private final String repository;
-    @NonNull
+    @Nonnull
     private final String defaultBranch;
 
-    public GitLabDefaultBranch(@NonNull String repoOwner, @NonNull String repository, @NonNull String defaultBranch) {
+    public GitLabDefaultBranch(@Nonnull String repoOwner, @Nonnull String repository, @Nonnull String defaultBranch) {
         this.repoOwner = repoOwner;
         this.repository = repository;
         this.defaultBranch = defaultBranch;
     }
 
-    @NonNull
+    @Nonnull
     public String getRepoOwner() {
         return repoOwner;
     }
 
-    @NonNull
+    @Nonnull
     public String getRepository() {
         return repository;
     }
 
-    @NonNull
+    @Nonnull
     public String getDefaultBranch() {
         return defaultBranch;
     }

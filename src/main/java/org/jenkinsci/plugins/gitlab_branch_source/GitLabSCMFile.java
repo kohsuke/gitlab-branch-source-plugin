@@ -1,15 +1,13 @@
 package org.jenkinsci.plugins.gitlab_branch_source;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMFile;
-import jenkins.scm.api.SCMFile.Type;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.GitlabProject;
 import org.gitlab.api.models.GitlabRepositoryFile;
 import org.gitlab.api.models.GitlabRepositoryTree;
-import org.w3c.dom.TypeInfo;
 
+import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -35,7 +33,7 @@ class GitLabSCMFile extends SCMFile {
         this.ref = ref;
     }
 
-    private GitLabSCMFile(@NonNull GitLabSCMFile parent, String name, TypeInfo info) {
+    private GitLabSCMFile(@Nonnull GitLabSCMFile parent, String name, TypeInfo info) {
         super(parent, name);
         this.info = info;
         this.api = parent.api;
@@ -43,7 +41,7 @@ class GitLabSCMFile extends SCMFile {
         this.ref = parent.ref;
     }
 
-    private GitLabSCMFile(@NonNull GitLabSCMFile parent, String name, GitlabRepositoryTree metadata) {
+    private GitLabSCMFile(@Nonnull GitLabSCMFile parent, String name, GitlabRepositoryTree metadata) {
         super(parent, name);
         this.api = parent.api;
         this.repo = parent.repo;
@@ -97,13 +95,13 @@ class GitLabSCMFile extends SCMFile {
         return metadata;
     }
 
-    @NonNull
+    @Nonnull
     @Override
     protected SCMFile newChild(String name, boolean assumeIsDirectory) {
         return new GitLabSCMFile(this, name, assumeIsDirectory ? TypeInfo.DIRECTORY_ASSUMED: TypeInfo.UNRESOLVED);
     }
 
-    @NonNull
+    @Nonnull
     @Override
     public Iterable<SCMFile> children() throws IOException {
         List<GitlabRepositoryTree> content = api.getRepositoryTree(repo, getPath(), ref, false);
@@ -120,7 +118,7 @@ class GitLabSCMFile extends SCMFile {
         return 0L;
     }
 
-    @NonNull
+    @Nonnull
     @Override
     protected Type type() throws IOException, InterruptedException {
         Object metadata = metadata();
@@ -143,7 +141,7 @@ class GitLabSCMFile extends SCMFile {
         return Type.NONEXISTENT;
     }
 
-    @NonNull
+    @Nonnull
     @Override
     public InputStream content() throws IOException, InterruptedException {
         Object metadata = metadata();

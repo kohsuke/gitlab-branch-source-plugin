@@ -43,8 +43,8 @@ public abstract class RepositoryUriResolver {
      * @param repository the name of the repository.
      * @return the GIT URL of the repository.
      */
-    @NonNull
-    public abstract String getRepositoryUri(@NonNull String apiUri, @NonNull String owner, @NonNull String repository);
+    @Nonnull
+    public abstract String getRepositoryUri(@Nonnull String apiUri, @Nonnull String owner, @Nonnull String repository);
 
     /**
      * Helper method that returns the hostname of a GitLab server from its API URL.
@@ -52,7 +52,7 @@ public abstract class RepositoryUriResolver {
      * @param apiUri the API URL.
      * @return the hostname of a GitLab server
      */
-    @NonNull
+    @Nonnull
     public static String hostnameFromApiUri(@CheckForNull String apiUri) {
         if (apiUri != null) {
             try {

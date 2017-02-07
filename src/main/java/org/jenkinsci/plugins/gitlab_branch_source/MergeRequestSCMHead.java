@@ -1,12 +1,12 @@
 package org.jenkinsci.plugins.gitlab_branch_source;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead;
 import org.gitlab.api.models.GitlabMergeRequest;
 import org.gitlab.api.models.GitlabProject;
 
+import javax.annotation.Nonnull;
 import java.util.logging.Logger;
 
 /**
@@ -79,7 +79,7 @@ public final class MergeRequestSCMHead extends SCMHead implements ChangeRequestS
     /**
      * {@inheritDoc}
      */
-    @NonNull
+    @Nonnull
     @Override
     public String getId() {
         return Integer.toString(number);
@@ -88,7 +88,7 @@ public final class MergeRequestSCMHead extends SCMHead implements ChangeRequestS
     /**
      * {@inheritDoc}
      */
-    @NonNull
+    @Nonnull
     @Override
     public SCMHead getTarget() {
         return target;

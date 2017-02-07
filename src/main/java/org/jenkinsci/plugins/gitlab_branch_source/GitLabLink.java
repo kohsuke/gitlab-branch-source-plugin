@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.gitlab_branch_source;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Action;
 import jenkins.model.Jenkins;
 import org.apache.commons.jelly.JellyContext;
@@ -9,6 +8,7 @@ import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
 import org.kohsuke.stapler.Stapler;
 
+import javax.annotation.Nonnull;
 import java.net.URL;
 
 /**
@@ -20,16 +20,16 @@ public class GitLabLink implements Action, IconSpec {
     /**
      * The icon class name to use.
      */
-    @NonNull
+    @Nonnull
     private final String iconClassName;
 
     /**
      * Target of the hyperlink to take the user to.
      */
-    @NonNull
+    @Nonnull
     private final String url;
 
-    public GitLabLink(@NonNull String iconClassName, @NonNull String url) {
+    public GitLabLink(@Nonnull String iconClassName, @Nonnull String url) {
         this.iconClassName = iconClassName;
         this.url = url;
     }
@@ -38,7 +38,7 @@ public class GitLabLink implements Action, IconSpec {
         this(iconClassName, url.toExternalForm());
     }
 
-    @NonNull
+    @Nonnull
     public String getUrl() {
         return url;
     }

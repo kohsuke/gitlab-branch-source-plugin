@@ -1,7 +1,8 @@
 package org.jenkinsci.plugins.gitlab_branch_source;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMRevision;
+
+import javax.annotation.Nonnull;
 
 /**
  * Revision of a pull request.
@@ -10,11 +11,12 @@ public class MergeRequestSCMRevision extends SCMRevision {
 
     private static final long serialVersionUID = 1L;
 
-    private final @NonNull
+    private final @Nonnull
     String baseHash;
-    private final @NonNull String pullHash;
+    private final @Nonnull
+    String pullHash;
 
-    MergeRequestSCMRevision(@NonNull MergeRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
+    MergeRequestSCMRevision(@Nonnull MergeRequestSCMHead head, @Nonnull String baseHash, @Nonnull String pullHash) {
         super(head);
         this.baseHash = baseHash;
         this.pullHash = pullHash;
@@ -25,14 +27,14 @@ public class MergeRequestSCMRevision extends SCMRevision {
      * If {@link MergeRequestSCMHead#isMerge}, this would be the current head of the base branch.
      * Otherwise it would be the PR’s {@code .base.sha}, the common ancestor of the PR branch and the base branch.
      */
-    public @NonNull String getBaseHash() {
+    public @Nonnull String getBaseHash() {
         return baseHash;
     }
 
     /**
      * The commit hash of the head of the pull request branch.
      */
-    public @NonNull String getPullHash() {
+    public @Nonnull String getPullHash() {
         return pullHash;
     }
 

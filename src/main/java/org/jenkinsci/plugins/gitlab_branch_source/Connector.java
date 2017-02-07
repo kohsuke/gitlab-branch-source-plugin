@@ -1,12 +1,9 @@
 package org.jenkinsci.plugins.gitlab_branch_source;
 
-import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.dabsquared.gitlabjenkins.connection.GitLabApiToken;
@@ -16,7 +13,6 @@ import hudson.AbortException;
 import hudson.Util;
 import hudson.model.Item;
 import hudson.model.Queue;
-import hudson.model.Queue.Task;
 import hudson.model.queue.Tasks;
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
@@ -30,12 +26,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.net.Proxy;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
-import static java.util.logging.Level.*;
+import static com.cloudbees.plugins.credentials.CredentialsProvider.*;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -81,16 +75,6 @@ public class Connector {
         );
     }
 
-    public static boolean isCredentialsValid(GitlabAPI api) {
-        try {
-            api.getVersion();
-            return true;
-        } catch (IOException e) {
-            LOGGER.log(FINE, "Credentials appear invalid on "+api, e);
-            return false;
-        }
-    }
-
     public static GitLabConnection getEndpoint(String endpoint) {
         GitLabConnectionConfig config = Jenkins.getInstance().getInjector().getInstance(GitLabConnectionConfig.class);
         for (GitLabConnection con : config.getConnections()) {
@@ -130,10 +114,6 @@ public class Connector {
         } catch (IOException e) {
             throw new IOException("Wrong URL or invalid credentials: "+con.getUrl()+" with "+con.getApiTokenId(),e);
         }
-    }
-
-    private static CredentialsMatcher gitlabScanCredentialsMatcher() {
-        return CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class));
     }
 
     private static List<DomainRequirement> gitlabDomainRequirements(String apiUri) {

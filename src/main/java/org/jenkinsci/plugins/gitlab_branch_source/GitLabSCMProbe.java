@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.gitlab_branch_source;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHead;
@@ -12,6 +11,7 @@ import org.gitlab.api.models.GitlabCommit;
 import org.gitlab.api.models.GitlabProject;
 import org.gitlab.api.models.GitlabRepositoryTree;
 
+import javax.annotation.Nonnull;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
@@ -69,9 +69,9 @@ class GitLabSCMProbe extends SCMProbe {
         return 0;
     }
 
-    @NonNull
+    @Nonnull
     @Override
-    public SCMProbeStat stat(@NonNull String path) throws IOException {
+    public SCMProbeStat stat(@Nonnull String path) throws IOException {
         if (repo == null) {
             throw new IOException("No connection available");
         }

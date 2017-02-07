@@ -7,8 +7,6 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.dabsquared.gitlabjenkins.connection.GitLabConnection;
 import com.dabsquared.gitlabjenkins.connection.GitLabConnectionConfig;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
@@ -68,6 +66,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.FileNotFoundException;
 import java.io.IOException;

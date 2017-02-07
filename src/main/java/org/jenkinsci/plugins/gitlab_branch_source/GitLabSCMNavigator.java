@@ -288,11 +288,11 @@ public class GitLabSCMNavigator extends SCMNavigator {
     /**
      * {@inheritDoc}
      */
-    @NonNull
+    @Nonnull
     @Override
-    public List<Action> retrieveActions(@NonNull SCMNavigatorOwner owner,
+    public List<Action> retrieveActions(@Nonnull SCMNavigatorOwner owner,
                                         @CheckForNull SCMNavigatorEvent event,
-                                        @NonNull TaskListener listener) throws IOException {
+                                        @Nonnull TaskListener listener) throws IOException {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
         List<Action> result = new ArrayList<>();
@@ -320,7 +320,7 @@ public class GitLabSCMNavigator extends SCMNavigator {
      * {@inheritDoc}
      */
     @Override
-    public void afterSave(@NonNull SCMNavigatorOwner owner) {
+    public void afterSave(@Nonnull SCMNavigatorOwner owner) {
         // TODO
 //        GitLabWebHook.get().registerHookFor(owner);
 //        try {
@@ -388,7 +388,7 @@ public class GitLabSCMNavigator extends SCMNavigator {
             return new GitLabSCMNavigator("", name, GitLabSCMSource.DescriptorImpl.SAME);
         }
 
-        @NonNull
+        @Nonnull
         @Override
         protected SCMSourceCategory[] createCategories() {
             return new SCMSourceCategory[]{
