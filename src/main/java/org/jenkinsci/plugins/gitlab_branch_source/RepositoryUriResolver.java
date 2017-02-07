@@ -57,13 +57,12 @@ public abstract class RepositoryUriResolver {
         if (apiUri != null) {
             try {
                 URL endpoint = new URL(apiUri);
-                if (!"api.github.com".equals(endpoint.getHost())) {
-                    return endpoint.getHost();
-                }
+                int p = endpoint.getPort();
+                return endpoint.getHost() + (p>0 ? ":"+p : "");
             } catch (MalformedURLException e) {
                 // ignore
             }
         }
-        return "github.com";
+        return "gitlab.com";
     }
 }
