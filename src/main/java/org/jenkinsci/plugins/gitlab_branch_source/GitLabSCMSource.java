@@ -243,7 +243,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     protected List<RefSpec> getRefSpecs() {
         return new ArrayList<>(Arrays.asList(new RefSpec("+refs/heads/*:refs/remotes/origin/*"),
             // For PRs we check out the head, then perhaps merge with the base branch.
-            new RefSpec("+refs/pull/*/head:refs/remotes/origin/pr/*")));
+            new RefSpec("+refs/merge-requests/*/head:refs/remotes/origin/merge-requests/*")));
     }
 
     /**
@@ -512,7 +512,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
                 for (boolean merge : new boolean[] {false, true}) {
-                    String branchName = "PR-" + number;
+                    String branchName = "MR-" + number;
                     if (merge && fork) {
                         if (!buildForkPRMerge) {
                             continue; // not doing this combination
@@ -520,7 +520,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
                         if (buildForkPRHead) {
                             branchName += "-merge"; // make sure they are distinct
                         }
-                        // If we only build merged, or only unmerged, then we use the /PR-\d+/ scheme as before.
+                        // If we only build merged, or only unmerged, then we use the /MR-\d+/ scheme as before.
                     }
                     if (merge && !fork) {
                         if (!buildOriginPRMerge) {
@@ -952,7 +952,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
                 if (head instanceof MergeRequestSCMHead) {
                     // pull request to this repository
                     int number = ((MergeRequestSCMHead) head).getNumber();
-                    url = repoLink.getUrl() + "/pull/" + number;
+                    url = repoLink.getUrl() + "/merge_requests/" + number;
                     metadataAction = pullRequestMetadataCache.get(number);
                     if (metadataAction == null) {
                         // best effort
