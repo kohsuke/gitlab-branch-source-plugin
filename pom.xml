@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <jenkins.version>1.609.3</jenkins.version>
+        <jenkins.version>2.7</jenkins.version>
         <workflow.version>1.14</workflow.version>
     </properties>
 
@@ -38,7 +38,7 @@
              <version>1.4.4</version>
         </dependency>
         <dependency>
-            <groupId>org.gitlab</groupId>
+            <groupId>org.kohsuke</groupId>
            	<artifactId>java-gitlab-api</artifactId>
             <version>1.2.7-kohsuke-5</version>
         </dependency>
