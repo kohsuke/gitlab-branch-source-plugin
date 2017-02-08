@@ -1,9 +1,8 @@
 #!/bin/sh
-exec sudo docker run -it \
+exec sudo docker run -it --rm \
     --hostname gitlab.example.com \
-    --publish 8443:443 --publish 8080:80 --publish 8022:22 \
+    --publish 127.0.0.1:8443:443 --publish 127.0.0.1:9023:9023 --publish 127.0.0.1:8022:22 \
     --name gitlab \
-    --restart always \
     --volume /srv/gitlab/config:/etc/gitlab \
     --volume /srv/gitlab/logs:/var/log/gitlab \
     --volume /srv/gitlab/data:/var/opt/gitlab \
