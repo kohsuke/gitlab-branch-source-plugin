@@ -1,13 +1,11 @@
-# What's going on?
-I'm trying to get GitLab Org Folder implemented by copying things from
-GitLab org folder. The general approach is:
+# GitLab Branch Source Plugin
+This is an attempt to make Jenkins organization folder work for GitLab.
+See [the documentation for GitHub org folder](https://github.com/jenkinsci/github-organization-folder-plugin) if you are new to the concept.
 
-* Copy over some class from `github-branch-source` plugin and run `./replace.sh` to adjust names
-* Manually fix up the code
-* Repeat until no compiler error
+## Current status
+This work was born in FOSDEM Hackathon. The basic functionalities work, but it probably needs some polish and more validation by people who actually use GitLab.
 
-Any help is welcome
-
-# Known TODOs
-* GL is unable to resolve a repository path name like 'OWNER/REPONAME' into a project object. This is blocking some of the current code migration
+Here are some known TODOs:
+* GitLab is unable to resolve a repository path name like 'OWNER/REPONAME' into a project object.
 * Contributor & trusted PR build
+* Hook support
